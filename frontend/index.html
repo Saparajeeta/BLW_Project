@@ -65,8 +65,12 @@
                         <!-- Stats Cards -->
                         <div class="stats-grid">
                             <div class="stat-card">
-                                <h3>Total Assets</h3>
+                                <h3>Total Assets Tracked</h3>
                                 <p id="totalAssets">...</p>
+                            </div>
+                            <div class="stat-card" style="background: rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.3);">
+                                <h3 style="color: var(--accent-color);">Locos Produced (Since 1956)</h3>
+                                <p style="color: white;">11,259+</p>
                             </div>
                             <div class="stat-card">
                                 <h3>Condition Breakdown</h3>
@@ -168,12 +172,16 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Location</label>
-                        <input type="text" id="itemLocation">
+                        <input type="text" id="itemLocation" placeholder="e.g. Bay 2">
                     </div>
                     <div class="form-group">
                         <label>Assigned To</label>
-                        <input type="text" id="itemAssignee">
+                        <input type="text" id="itemAssignee" placeholder="e.g. Assembly Chief">
                     </div>
+                </div>
+                <div class="form-group">
+                    <label>Technical Specifications (JSON or plain text)</label>
+                    <input type="text" id="itemSpecs" placeholder='e.g. {"HP": "6000", "MaxSpeed": "140 km/h"}'>
                 </div>
                 <button type="submit" class="btn-primary w-full">Save Asset</button>
             </form>

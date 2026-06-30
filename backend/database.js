@@ -38,6 +38,7 @@ function initDb() {
             assigned_to TEXT,
             location TEXT,
             asset_value REAL,
+            specifications TEXT,
             last_maintenance TEXT,
             next_maintenance TEXT,
             FOREIGN KEY(department_id) REFERENCES departments(id)
@@ -73,7 +74,7 @@ function initDb() {
 }
 
 async function seedData() {
-    console.log("Seeding initial database...");
+    console.log("Seeding initial realistic BLW database...");
     
     // Seed Users
     const saltRounds = 10;
@@ -83,43 +84,75 @@ async function seedData() {
     db.run(`INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)`, ['admin', adminHash, 'Admin']);
     db.run(`INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)`, ['viewer', viewerHash, 'Viewer']);
     
-    // Seed Departments
+    // Seed Departments with Real Names
     const depts = [
         'Loco Assembly Shop',
         'Heavy Machine Shop',
+        'Loco Frame Shop',
+        'Heat Treatment Shop',
         'Electronic Data Processing (EDP)',
-        'Stores',
-        'Tele Exchange'
+        'SCADA'
     ];
     
     depts.forEach(dept => {
         db.run(`INSERT INTO departments (name) VALUES (?)`, [dept]);
     });
 
-    // Seed Assets
-    const stmt = db.prepare(`INSERT INTO assets (name, category, department_id, quantity, purchase_date, warranty_expiry, condition, assigned_to, location, asset_value, last_maintenance, next_maintenance) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    // Seed Realistic Assets
+    const stmt = db.prepare(`INSERT INTO assets (name, category, department_id, quantity, purchase_date, warranty_expiry, condition, assigned_to, location, asset_value, specifications, last_maintenance, next_maintenance) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
     
     const assetsData = [
         // Loco Assembly Shop (dept 1)
-        { name: 'WAP7 Traction Motor', category: 'Machinery', dept: 1, qty: 5, pur: '2022-01-15', war: '2025-01-14', cond: 'Good', assign: 'Ramesh K.', loc: 'Shop Floor A', val: 500000, last_maint: '2025-01-10', next_maint: '2025-07-10' },
-        { name: 'Overhead Crane (10T)', category: 'Machinery', dept: 1, qty: 2, pur: '2015-05-20', war: '2020-05-19', cond: 'Needs Repair', assign: 'Suresh M.', loc: 'Bay 2', val: 1200000, last_maint: '2024-11-20', next_maint: '2025-02-20' },
-        { name: 'Pneumatic Wrenches', category: 'Tools', dept: 1, qty: 15, pur: '2024-03-01', war: '2026-03-01', cond: 'New', assign: null, loc: 'Tool Room 1', val: 15000, last_maint: null, next_maint: '2025-09-01' },
+        { 
+            name: 'Locomotive WAP7-37638', 
+            category: 'Machinery', dept: 1, qty: 1, pur: '2023-11-15', war: '2028-11-14', cond: 'New', assign: 'Assembly Chief', loc: 'Bay A', val: 120000000, 
+            specs: JSON.stringify({ Gauge: '1676mm', Supply: '25kV', HP: '6000', MaxSpeed: '140 km/h' }),
+            last_maint: null, next_maint: '2025-11-15' 
+        },
+        { 
+            name: 'Locomotive WAG9-32045', 
+            category: 'Machinery', dept: 1, qty: 1, pur: '2022-03-20', war: '2027-03-19', cond: 'Good', assign: 'Assembly Chief', loc: 'Bay B', val: 100000000, 
+            specs: JSON.stringify({ HP: '6000', MaxSpeed: '100 km/h', TractiveEffort: '46 tonnes' }),
+            last_maint: '2024-03-20', next_maint: '2025-03-20' 
+        },
+        { 
+            name: 'Overhead Crane (10T)', 
+            category: 'Machinery', dept: 1, qty: 2, pur: '2015-05-20', war: '2020-05-19', cond: 'Needs Repair', assign: 'Suresh M.', loc: 'Bay 2', val: 1200000, 
+            specs: JSON.stringify({ Capacity: '10 Tonnes', Span: '25 meters' }),
+            last_maint: '2024-11-20', next_maint: '2025-02-20' 
+        },
         // Heavy Machine Shop (dept 2)
-        { name: 'CNC Lathe Machine', category: 'Machinery', dept: 2, qty: 1, pur: '2018-08-10', war: '2023-08-10', cond: 'Decommissioned', assign: 'Amit P.', loc: 'Shop Floor C', val: 2500000, last_maint: '2024-01-15', next_maint: null }, // Decommissioned -> no next maint
-        { name: 'Vertical Boring Mill', category: 'Machinery', dept: 2, qty: 2, pur: '2021-11-12', war: '2026-11-12', cond: 'Good', assign: 'Vikram S.', loc: 'Bay 1', val: 1800000, last_maint: '2025-05-10', next_maint: '2025-11-10' },
-        // EDP (dept 3)
-        { name: 'High-end Servers', category: 'IT Hardware', dept: 3, qty: 4, pur: '2023-06-15', war: '2026-06-15', cond: 'Good', assign: 'EDP Admin', loc: 'Server Room', val: 350000, last_maint: '2025-06-15', next_maint: '2025-12-15' },
-        { name: 'Desktop Workstations', category: 'IT Hardware', dept: 3, qty: 40, pur: '2022-02-20', war: '2025-02-20', cond: 'Good', assign: null, loc: 'Lab 1', val: 60000, last_maint: null, next_maint: '2026-02-20' },
-        // Stores (dept 4)
-        { name: 'WAP7 Bogie Frames', category: 'Spare Parts', dept: 4, qty: 10, pur: '2025-01-05', war: '2035-01-05', cond: 'New', assign: 'Storekeeper', loc: 'Warehouse B', val: 800000, last_maint: null, next_maint: null },
-        // Tele Exchange (dept 5)
-        { name: 'Cisco Core Switches', category: 'IT Hardware', dept: 5, qty: 3, pur: '2020-09-10', war: '2023-09-10', cond: 'Needs Repair', assign: 'Network Team', loc: 'Control Room', val: 120000, last_maint: '2024-10-10', next_maint: '2025-01-10' }
+        { 
+            name: 'CNC Lathe Machine', 
+            category: 'Machinery', dept: 2, qty: 1, pur: '2018-08-10', war: '2023-08-10', cond: 'Decommissioned', assign: 'Amit P.', loc: 'Shop Floor C', val: 2500000, 
+            specs: JSON.stringify({ Model: 'Doosan Puma', Axis: '3-Axis' }),
+            last_maint: '2024-01-15', next_maint: null 
+        },
+        { 
+            name: 'Vertical Boring Mill', 
+            category: 'Machinery', dept: 2, qty: 2, pur: '2021-11-12', war: '2026-11-12', cond: 'Good', assign: 'Vikram S.', loc: 'Bay 1', val: 1800000, 
+            specs: null,
+            last_maint: '2025-05-10', next_maint: '2025-11-10' 
+        },
+        // EDP (dept 5)
+        { 
+            name: 'High-end Servers', 
+            category: 'IT Hardware', dept: 5, qty: 4, pur: '2023-06-15', war: '2026-06-15', cond: 'Good', assign: 'EDP Admin', loc: 'Server Room', val: 350000, 
+            specs: JSON.stringify({ CPU: 'Dual Xeon Silver', RAM: '128GB', Storage: '4TB NVMe' }),
+            last_maint: '2025-06-15', next_maint: '2025-12-15' 
+        },
+        // SCADA (dept 6)
+        { 
+            name: 'SCADA Control Workstations', 
+            category: 'IT Hardware', dept: 6, qty: 3, pur: '2020-09-10', war: '2023-09-10', cond: 'Needs Repair', assign: 'Network Team', loc: 'Control Room', val: 120000, 
+            specs: JSON.stringify({ OS: 'RedHat Linux', Monitors: 'Dual 27-inch' }),
+            last_maint: '2024-10-10', next_maint: '2025-01-10' 
+        }
     ];
 
     assetsData.forEach(a => {
-        stmt.run([a.name, a.category, a.dept, a.qty, a.pur, a.war, a.cond, a.assign, a.loc, a.val, a.last_maint, a.next_maint], function(err) {
+        stmt.run([a.name, a.category, a.dept, a.qty, a.pur, a.war, a.cond, a.assign, a.loc, a.val, a.specs, a.last_maint, a.next_maint], function(err) {
             if (!err && a.last_maint) {
-                // Add an initial maintenance log for assets that had maintenance
                 db.run(`INSERT INTO maintenance_logs (asset_id, maintenance_date, technician, notes, cost) VALUES (?, ?, ?, ?, ?)`, 
                     [this.lastID, a.last_maint, 'System Seed', 'Initial seeded maintenance record', 0]);
             }
@@ -127,7 +160,7 @@ async function seedData() {
     });
     
     stmt.finalize(() => {
-        console.log("Database seeded successfully with users, departments, and realistic assets.");
+        console.log("Database seeded successfully with authentic BLW data.");
     });
 }
 

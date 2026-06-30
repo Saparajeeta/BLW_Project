@@ -58,11 +58,11 @@ router.post('/', requireAuth, requireAdmin, [
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    const { name, category, department_id, quantity, purchase_date, warranty_expiry, condition, assigned_to, location, asset_value } = req.body;
+    const { name, category, department_id, quantity, purchase_date, warranty_expiry, condition, assigned_to, location, asset_value, specifications } = req.body;
     
     db.run(
-        `INSERT INTO assets (name, category, department_id, quantity, purchase_date, warranty_expiry, condition, assigned_to, location, asset_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [name, category, department_id, quantity, purchase_date, warranty_expiry, condition, assigned_to, location, asset_value || 0],
+        `INSERT INTO assets (name, category, department_id, quantity, purchase_date, warranty_expiry, condition, assigned_to, location, asset_value, specifications) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [name, category, department_id, quantity, purchase_date, warranty_expiry, condition, assigned_to, location, asset_value || 0, specifications],
         function (err) {
             if (err) return res.status(500).json({ error: err.message });
             const assetId = this.lastID;

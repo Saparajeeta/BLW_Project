@@ -2,6 +2,14 @@
 
 A production-grade full-stack web application designed for a locomotive manufacturing unit (inspired by BLW/DLW Varanasi). It provides a robust platform for tracking machinery, IT hardware, tools, and spare parts across various shop floors and departments.
 
+## 🏭 About Banaras Locomotive Works (BLW)
+This project is deeply inspired by the real-world operations of Banaras Locomotive Works (formerly Diesel Locomotive Works) in Varanasi. 
+- **Heritage:** Founded in 1956, BLW began by manufacturing ALCO-based locomotives (like WDM-2). 
+- **Evolution:** By 2002, they transitioned to high-horsepower EMD 710-based locomotives (WDG-4/WDP-4). 
+- **Modern Era:** In 2019, they developed India's first bi-mode locomotive (WDAP-5) and today are massive producers of electric locomotives, notably the **WAP-7** and **WAG-9**.
+- **Production Scale:** In FY 2025-26, cumulative production hit 572 locomotives, contributing to over 11,259 locomotives built since inception.
+- **Global Reach:** BLW is not just a domestic supplier; they have generated ₹1,837 crore from non-railway customers and exports (like locomotives sent to Mozambique).
+
 ## 🌟 Key Features
 
 * **Real-time Dashboard Analytics:** Interactive charts powered by `Chart.js` displaying asset distribution, condition breakdowns, and key metrics.

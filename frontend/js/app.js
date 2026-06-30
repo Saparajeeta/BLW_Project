@@ -145,10 +145,23 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const tr = document.createElement('tr');
+            
+            // Format specs for display
+            let specsDisplay = '';
+            if (asset.specifications) {
+                try {
+                    const parsed = JSON.parse(asset.specifications);
+                    specsDisplay = Object.entries(parsed).map(([k,v]) => `${k}: ${v}`).join(' | ');
+                } catch(e) {
+                    specsDisplay = asset.specifications;
+                }
+            }
+
             tr.innerHTML = `
                 <td>
                     <div class="asset-title">${asset.name}</div>
                     <div class="asset-sub">${asset.category} | ${asset.department_name}</div>
+                    ${specsDisplay ? `<div style="font-size: 0.75rem; color: var(--accent-color); margin-top: 4px;">${specsDisplay}</div>` : ''}
                 </td>
                 <td>
                     <div>${asset.location || '-'}</div>
@@ -287,7 +300,8 @@ document.addEventListener('DOMContentLoaded', () => {
             condition: document.getElementById('itemCondition').value,
             asset_value: document.getElementById('itemValue').value,
             location: document.getElementById('itemLocation').value,
-            assigned_to: document.getElementById('itemAssignee').value
+            assigned_to: document.getElementById('itemAssignee').value,
+            specifications: document.getElementById('itemSpecs').value
         };
 
         try {
