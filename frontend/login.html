@@ -3,76 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - BLW AMS</title>
+    <title>Login - BLW Locomotive Tracking</title>
     <link rel="stylesheet" href="css/styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
-    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: url('assets/images/blw_bg.jpg') center/cover no-repeat;
+        }
+        .login-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(10, 15, 30, 0.85); /* Dark overlay */
+            z-index: 0;
+        }
+        .login-container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            backdrop-filter: blur(12px);
+            text-align: center;
+        }
+        .logo {
+            margin-bottom: 2rem;
+        }
+        .logo h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .logo p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        .form-group {
+            text-align: left;
+        }
+    </style>
 </head>
-<body class="login-body">
-    <div class="login-wrapper">
-        <div class="login-card">
-            <div class="login-header">
-                <ion-icon name="train-outline" class="login-logo"></ion-icon>
-                <h2>Welcome Back</h2>
-                <p>Sign in to BLW Asset Management System</p>
+<body>
+    <div class="login-overlay"></div>
+    
+    <div class="login-container" id="loginFormContainer">
+        <div class="logo">
+            <h2>BLW Varanasi</h2>
+            <p>Locomotive Production Tracking System</p>
+        </div>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" required>
             </div>
-            <form id="loginForm" class="login-form">
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" required>
+            </div>
+            <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1rem;">Login</button>
+        </form>
+    </div>
+
+    <!-- Password Reset Modal (shows on first login) -->
+    <div class="modal-overlay hidden" id="resetModal">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 1rem;">Password Reset Required</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                For security reasons, you must change your default password before proceeding.
+            </p>
+            <form id="resetForm">
                 <div class="form-group">
-                    <input type="text" id="username" class="login-input" placeholder="Username (e.g. admin or viewer)" required>
+                    <label for="newPassword">New Password (min 6 characters)</label>
+                    <input type="password" id="newPassword" required minlength="6">
                 </div>
                 <div class="form-group">
-                    <input type="password" id="password" class="login-input" placeholder="Password (e.g. admin123)" required>
+                    <label for="confirmPassword">Confirm Password</label>
+                    <input type="password" id="confirmPassword" required minlength="6">
                 </div>
-                <button type="submit" class="btn-primary w-full login-btn" id="loginBtn">Login</button>
+                <button type="submit" class="btn-primary" style="width: 100%;">Update Password</button>
             </form>
         </div>
     </div>
-    <div id="toastContainer" class="toast-container"></div>
 
+    <script src="js/app.js"></script>
     <script>
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const btn = document.getElementById('loginBtn');
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-            
-            btn.textContent = 'Authenticating...';
-            btn.disabled = true;
 
             try {
-                const res = await fetch('/api/auth/login', {
+                const data = await window.apiFetch('/auth/login', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
                 });
 
-                const data = await res.json();
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
 
-                if (res.ok) {
-                    localStorage.setItem('ams_token', data.token);
-                    localStorage.setItem('ams_role', data.role);
-                    localStorage.setItem('ams_user', username);
-                    window.location.href = 'index.html';
+                if (data.user.password_reset_required) {
+                    document.getElementById('resetModal').classList.remove('hidden');
                 } else {
-                    showToast(data.error || 'Login failed', 'error');
-                    btn.textContent = 'Login';
-                    btn.disabled = false;
+                    window.location.href = 'dashboard.html';
                 }
             } catch (err) {
-                showToast('Server error', 'error');
-                btn.textContent = 'Login';
-                btn.disabled = false;
+                // Toast handles error display
             }
         });
 
-        function showToast(message, type='success') {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.textContent = message;
-            container.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
+        document.getElementById('resetForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (newPassword !== confirmPassword) {
+                window.showToast('Passwords do not match', 'danger');
+                return;
+            }
+
+            try {
+                const data = await window.apiFetch('/auth/reset-password', {
+                    method: 'POST',
+                    body: JSON.stringify({ newPassword })
+                });
+
+                localStorage.setItem('token', data.token);
+                // update user locally
+                const user = JSON.parse(localStorage.getItem('user'));
+                user.password_reset_required = false;
+                localStorage.setItem('user', JSON.stringify(user));
+
+                window.showToast('Password updated successfully. Redirecting...', 'success');
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1000);
+            } catch (err) {
+                // error handled by apiFetch
+            }
+        });
+
+        // Check if redirected here to reset
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('reset') === 'true') {
+            document.getElementById('resetModal').classList.remove('hidden');
         }
     </script>
 </body>

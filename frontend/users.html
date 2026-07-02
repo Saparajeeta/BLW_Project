@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - BLW</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <script src="js/app.js"></script>
+    <script>requireAuth();</script>
+
+    <div class="container">
+        <div class="card-header mb-1">
+            <span>System Users</span>
+            <button class="btn-primary" id="addUserBtn">Create User</button>
+        </div>
+
+        <div class="card">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Employee ID</th>
+                            <th>Name</th>
+                            <th>Username</th>
+                            <th>Role</th>
+                            <th>Department / Stage</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create User Modal -->
+    <div class="modal-overlay hidden" id="addUserModal">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 1rem;">Create New User</h3>
+            <form id="addUserForm">
+                <div class="form-group">
+                    <label>Employee ID</label>
+                    <input type="text" id="empId" required>
+                </div>
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="empName" required>
+                </div>
+                <div class="form-group">
+                    <label>Username (Login)</label>
+                    <input type="text" id="empUsername" required>
+                </div>
+                <div class="form-group">
+                    <label>Temporary Password</label>
+                    <input type="password" id="empPassword" required minlength="6">
+                    <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">User will be forced to change this on first login.</small>
+                </div>
+                <div class="form-group">
+                    <label>Role</label>
+                    <select id="empRole" required>
+                        <option value="Admin">Admin</option>
+                        <option value="Engineer">Engineer</option>
+                        <option value="Worker">Worker</option>
+                    </select>
+                </div>
+                <div class="form-group" id="deptGroup">
+                    <label>Assigned Stage / Department</label>
+                    <select id="empDept">
+                        <option value="">-- None --</option>
+                        <option value="Frame Fabrication">Frame Fabrication</option>
+                        <option value="Bogie Assembly">Bogie Assembly</option>
+                        <option value="Loco Assembly">Loco Assembly</option>
+                        <option value="Electrical Fitting">Electrical Fitting</option>
+                        <option value="Paint & Finishing">Paint & Finishing</option>
+                        <option value="Quality Check">Quality Check</option>
+                        <option value="Trial Run">Trial Run</option>
+                        <option value="Ready for Dispatch">Ready for Dispatch</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="submit" class="btn-primary" style="flex: 1;">Create User</button>
+                    <button type="button" class="btn-secondary" style="flex: 1;" onclick="document.getElementById('addUserModal').classList.add('hidden')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!currentUser || currentUser.role !== 'Admin') {
+                window.location.href = 'dashboard.html';
+                return;
+            }
+
+            await loadUsers();
+
+            document.getElementById('addUserBtn').addEventListener('click', () => {
+                document.getElementById('addUserModal').classList.remove('hidden');
+            });
+
+            document.getElementById('addUserForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const body = {
+                    employee_id: document.getElementById('empId').value,
+                    name: document.getElementById('empName').value,
+                    username: document.getElementById('empUsername').value,
+                    password: document.getElementById('empPassword').value,
+                    role: document.getElementById('empRole').value,
+                    department: document.getElementById('empDept').value || null
+                };
+
+                try {
+                    await window.apiFetch('/auth/register', { method: 'POST', body: JSON.stringify(body) });
+                    window.showToast('User created successfully', 'success');
+                    document.getElementById('addUserModal').classList.add('hidden');
+                    document.getElementById('addUserForm').reset();
+                    loadUsers();
+                } catch (err) {}
+            });
+        });
+
+        async function loadUsers() {
+            try {
+                const users = await window.apiFetch('/auth/users');
+                const tbody = document.getElementById('usersTableBody');
+                
+                if (users.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No users found.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = users.map(user => {
+                    const statusStr = user.password_reset_required ? 
+                        '<span class="badge warning">Pending Reset</span>' : 
+                        '<span class="badge success">Active</span>';
+                        
+                    return `
+                        <tr>
+                            <td><strong>${user.employee_id}</strong></td>
+                            <td>${user.name}</td>
+                            <td>${user.username}</td>
+                            <td>${user.role}</td>
+                            <td>${user.department || '--'}</td>
+                            <td>${statusStr}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (err) {}
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Issues Log - BLW</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <script src="js/app.js"></script>
+    <script>requireAuth();</script>
+
+    <div class="container">
+        <div class="card-header mb-1">
+            <span>Issues & Breakdown Log</span>
+            <button class="btn-primary" id="logIssueBtn">Log New Issue</button>
+        </div>
+
+        <div class="card">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Loco Number</th>
+                            <th>Date / Time</th>
+                            <th>Issue Type</th>
+                            <th>Severity</th>
+                            <th>Description</th>
+                            <th>Logged By</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="issuesTableBody">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Issue Modal -->
+    <div class="modal-overlay hidden" id="logIssueModal">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 1rem;">Log New Issue</h3>
+            <form id="logIssueForm">
+                <div class="form-group">
+                    <label>Locomotive Number</label>
+                    <input type="text" id="locoNumber" required placeholder="e.g. WAP7-30412">
+                </div>
+                <div class="form-group">
+                    <label>Issue Type</label>
+                    <select id="issueType" required>
+                        <option value="Mechanical">Mechanical</option>
+                        <option value="Electrical">Electrical</option>
+                        <option value="Quality">Quality / Paint</option>
+                        <option value="Material Delay">Material Shortage / Delay</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Severity</label>
+                    <select id="issueSeverity" required>
+                        <option value="Low">Low</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High</option>
+                        <option value="Critical">Critical</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="issueDesc" rows="3" required placeholder="Describe the issue..."></textarea>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button type="submit" class="btn-primary" style="flex: 1;">Submit Issue</button>
+                    <button type="button" class="btn-secondary" style="flex: 1;" onclick="document.getElementById('logIssueModal').classList.add('hidden')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Resolve Issue Modal -->
+    <div class="modal-overlay hidden" id="resolveIssueModal">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 1rem;">Update Issue Status</h3>
+            <form id="resolveIssueForm">
+                <input type="hidden" id="updateIssueId">
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="updateStatus" required>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Resolved">Resolved</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Resolution Notes</label>
+                    <textarea id="resNotes" rows="3" placeholder="What was done to fix this..."></textarea>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button type="submit" class="btn-primary" style="flex: 1;">Update</button>
+                    <button type="button" class="btn-secondary" style="flex: 1;" onclick="document.getElementById('resolveIssueModal').classList.add('hidden')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/issues.js"></script>
+</body>
+</html>

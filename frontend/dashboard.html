@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - BLW</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <script src="js/app.js"></script>
+    <script>requireAuth();</script>
+
+    <div class="container">
+        <div class="banner">
+            <img src="assets/images/loco_banner.jpg" alt="Locomotive Banner" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMzMzMiLz48L3N2Zz4='">
+            <div class="overlay">
+                <h1>Live Production Dashboard</h1>
+            </div>
+        </div>
+
+        <div id="alertsPanel"></div>
+
+        <div class="card mb-1">
+            <div class="card-header">Production Pipeline (Live)</div>
+            <div class="pipeline-container" id="pipelineFlow">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-header">Production Overview</div>
+                <div class="grid-2" style="margin-bottom: 2rem;">
+                    <div>
+                        <div style="font-size: 0.85rem; color: var(--text-secondary);">In Production</div>
+                        <div style="font-size: 2rem; font-weight: 700;" id="statInProduction">0</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.85rem; color: var(--text-secondary);">Dispatched (This Month)</div>
+                        <div style="font-size: 2rem; font-weight: 700; color: var(--success);" id="statDispatched">0</div>
+                    </div>
+                </div>
+                <canvas id="stageChart"></canvas>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">Recent Critical Issues</div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Loco</th>
+                                <th>Issue Type</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="criticalIssuesTable">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/charts.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!currentUser) return;
+            
+            try {
+                const data = await window.apiFetch('/reports/dashboard');
+                
+                // Populate Stats
+                document.getElementById('statInProduction').textContent = data.totalInProduction;
+                document.getElementById('statDispatched').textContent = data.dispatchedThisMonth;
+                
+                // Setup Pipeline
+                const stages = [
+                    'Frame Fabrication', 'Bogie Assembly', 'Loco Assembly', 
+                    'Electrical Fitting', 'Paint & Finishing', 'Quality Check', 
+                    'Trial Run', 'Ready for Dispatch'
+                ];
+                
+                const pipelineHtml = stages.map(stage => {
+                    const stageData = data.stageCounts.find(s => s.current_stage === stage);
+                    const count = stageData ? stageData.count : 0;
+                    return `
+                        <div class="pipeline-stage">
+                            <div class="stage-count">${count}</div>
+                            <div class="stage-name">${stage}</div>
+                        </div>
+                    `;
+                }).join('');
+                
+                document.getElementById('pipelineFlow').innerHTML = pipelineHtml;
+
+                // Alerts Panel
+                const alertsPanel = document.getElementById('alertsPanel');
+                if (data.overdueLocos.length > 0) {
+                    alertsPanel.innerHTML += `
+                        <div class="alert-box alert-danger">
+                            ⚠ <strong>${data.overdueLocos.length} Locomotive(s) Overdue:</strong> 
+                            ${data.overdueLocos.map(l => l.loco_number).join(', ')}
+                        </div>
+                    `;
+                }
+                if (data.stuckLocos.length > 0) {
+                    alertsPanel.innerHTML += `
+                        <div class="alert-box alert-warning">
+                            ⚠ <strong>${data.stuckLocos.length} Locomotive(s) stuck in stage > 7 days:</strong> 
+                            ${data.stuckLocos.map(l => l.loco_number).join(', ')}
+                        </div>
+                    `;
+                }
+
+                // Critical Issues Table
+                const issuesTable = document.getElementById('criticalIssuesTable');
+                if (data.criticalIssues.length === 0) {
+                    issuesTable.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-secondary);">No critical issues</td></tr>';
+                } else {
+                    issuesTable.innerHTML = data.criticalIssues.map(i => `
+                        <tr>
+                            <td>${i.loco_number}</td>
+                            <td>${i.issue_type}</td>
+                            <td><span class="badge danger">${i.status}</span></td>
+                        </tr>
+                    `).join('');
+                }
+
+                // Chart
+                if (window.initDashboardChart) {
+                    window.initDashboardChart(data.stageCounts, stages);
+                }
+                
+            } catch (err) {
+                console.error("Dashboard error:", err);
+            }
+        });
+    </script>
+</body>
+</html>

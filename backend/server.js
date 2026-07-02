@@ -4,37 +4,28 @@ const cors = require('cors');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../frontend')));
 
-// Route imports
+// Routes
 const authRoutes = require('./routes/auth');
-const assetsRoutes = require('./routes/assets');
-const departmentsRoutes = require('./routes/departments');
-const analyticsRoutes = require('./routes/analytics');
-const maintenanceRoutes = require('./routes/maintenance');
+const locosRoutes = require('./routes/locos');
+const issuesRoutes = require('./routes/issues');
+const reportsRoutes = require('./routes/reports');
 
-// API Mounts
 app.use('/api/auth', authRoutes);
-app.use('/api/assets', assetsRoutes);
-app.use('/api/departments', departmentsRoutes);
-app.use('/api/analytics', analyticsRoutes);
-app.use('/api/maintenance', maintenanceRoutes);
+app.use('/api/locos', locosRoutes);
+app.use('/api/issues', issuesRoutes);
+app.use('/api/reports', reportsRoutes);
 
-// Fallback to index.html for frontend routing
+// Fallback to login for unknown pages
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/index.html'));
+    res.sendFile(path.join(__dirname, '../frontend/login.html'));
 });
 
-// Global Error Handler
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ error: 'Internal Server Error' });
-});
-
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+app.listen(port, () => {
+    console.log(`BLW Production Tracking System running on http://localhost:${port}`);
 });

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports - BLW</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <script src="js/app.js"></script>
+    <script>requireAuth();</script>
+
+    <div class="container">
+        <div class="card-header mb-1">
+            <span>Production Reports & Analytics</span>
+        </div>
+
+        <div class="grid-2">
+            <!-- Report 1 -->
+            <div class="card">
+                <div class="card-header">
+                    Monthly Production
+                    <button class="btn-secondary" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;" onclick="exportCSV('/reports/monthly', 'monthly_production.csv')">Export CSV</button>
+                </div>
+                <div style="color: var(--text-secondary); font-size: 0.9rem;">
+                    Lists all locomotives ordered by production start date.
+                </div>
+            </div>
+
+            <!-- Report 2 -->
+            <div class="card">
+                <div class="card-header">
+                    Stage-wise Status
+                    <button class="btn-secondary" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;" onclick="exportCSV('/reports/stage-status', 'stage_status.csv')">Export CSV</button>
+                </div>
+                <div style="color: var(--text-secondary); font-size: 0.9rem;">
+                    Live breakdown of locomotives by current stage, sorted by days in stage.
+                </div>
+            </div>
+
+            <!-- Report 3 -->
+            <div class="card">
+                <div class="card-header">
+                    Pending Issues
+                    <button class="btn-secondary" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;" onclick="exportCSV('/reports/pending-issues', 'pending_issues.csv')">Export CSV</button>
+                </div>
+                <div style="color: var(--text-secondary); font-size: 0.9rem;">
+                    All open and in-progress issues across the production floor.
+                </div>
+            </div>
+
+            <!-- Report 4 -->
+            <div class="card">
+                <div class="card-header">
+                    Overdue Locomotives
+                    <button class="btn-secondary" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;" onclick="exportCSV('/reports/overdue-locos', 'overdue_locos.csv')">Export CSV</button>
+                </div>
+                <div style="color: var(--text-secondary); font-size: 0.9rem;">
+                    Locomotives that have passed their target dispatch date.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function exportCSV(endpoint, filename) {
+            try {
+                const data = await window.apiFetch(endpoint);
+                
+                if (data.length === 0) {
+                    window.showToast('No data available to export', 'warning');
+                    return;
+                }
+
+                // Convert JSON to CSV
+                const headers = Object.keys(data[0]).join(',');
+                const rows = data.map(obj => 
+                    Object.values(obj).map(val => {
+                        // escape commas and quotes
+                        let str = val === null || val === undefined ? '' : String(val);
+                        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                            return `"${str.replace(/"/g, '""')}"`;
+                        }
+                        return str;
+                    }).join(',')
+                ).join('\n');
+                
+                const csvStr = `${headers}\n${rows}`;
+                
+                // Create download link
+                const blob = new Blob([csvStr], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.setAttribute("href", url);
+                link.setAttribute("download", filename);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+            } catch (err) {
+                // Handled by apiFetch toast
+            }
+        }
+    </script>
+</body>
+</html>

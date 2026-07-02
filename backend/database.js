@@ -2,7 +2,7 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const bcrypt = require('bcrypt');
 
-const dbPath = path.resolve(__dirname, process.env.DB_PATH || 'inventory.db');
+const dbPath = path.resolve(__dirname, process.env.DB_PATH || 'blw_production.db');
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
         console.error('Error opening database', err.message);
@@ -14,55 +14,68 @@ const db = new sqlite3.Database(dbPath, (err) => {
 
 function initDb() {
     db.serialize(() => {
-        db.run(`CREATE TABLE IF NOT EXISTS departments (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE NOT NULL
-        )`);
-
         db.run(`CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            employee_id TEXT UNIQUE NOT NULL,
+            name TEXT NOT NULL,
             username TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
-            role TEXT NOT NULL
+            role TEXT NOT NULL,
+            department TEXT,
+            password_reset_required INTEGER DEFAULT 0
         )`);
 
-        db.run(`CREATE TABLE IF NOT EXISTS assets (
+        db.run(`CREATE TABLE IF NOT EXISTS locomotives (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            category TEXT NOT NULL,
-            department_id INTEGER NOT NULL,
-            quantity INTEGER NOT NULL,
-            purchase_date TEXT,
-            warranty_expiry TEXT,
-            condition TEXT NOT NULL,
-            assigned_to TEXT,
-            location TEXT,
-            asset_value REAL,
-            specifications TEXT,
-            last_maintenance TEXT,
-            next_maintenance TEXT,
-            FOREIGN KEY(department_id) REFERENCES departments(id)
+            loco_number TEXT UNIQUE NOT NULL,
+            model TEXT NOT NULL,
+            start_date TEXT NOT NULL,
+            assigned_engineer TEXT,
+            current_stage TEXT NOT NULL,
+            target_dispatch_date TEXT,
+            status TEXT DEFAULT 'In Production',
+            last_stage_update_at TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
 
-        db.run(`CREATE TABLE IF NOT EXISTS audit_logs (
+        db.run(`CREATE TABLE IF NOT EXISTS stage_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
+            loco_id INTEGER NOT NULL,
+            stage_name TEXT NOT NULL,
             action TEXT NOT NULL,
-            target_type TEXT NOT NULL,
-            target_id INTEGER,
-            details TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(user_id) REFERENCES users(id)
+            updated_by INTEGER NOT NULL,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            remarks TEXT NOT NULL,
+            FOREIGN KEY(loco_id) REFERENCES locomotives(id),
+            FOREIGN KEY(updated_by) REFERENCES users(id)
         )`);
 
-        db.run(`CREATE TABLE IF NOT EXISTS maintenance_logs (
+        db.run(`CREATE TABLE IF NOT EXISTS issues (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            asset_id INTEGER NOT NULL,
-            maintenance_date TEXT NOT NULL,
-            technician TEXT NOT NULL,
-            notes TEXT,
-            cost REAL,
-            FOREIGN KEY(asset_id) REFERENCES assets(id)
+            loco_id INTEGER NOT NULL,
+            logged_by INTEGER NOT NULL,
+            issue_type TEXT NOT NULL,
+            description TEXT NOT NULL,
+            severity TEXT NOT NULL,
+            status TEXT DEFAULT 'Open',
+            resolution_notes TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            resolved_at DATETIME,
+            FOREIGN KEY(loco_id) REFERENCES locomotives(id),
+            FOREIGN KEY(logged_by) REFERENCES users(id)
+        )`);
+        
+        db.run(`CREATE TABLE IF NOT EXISTS dispatch_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            loco_id INTEGER NOT NULL,
+            destination_zone TEXT NOT NULL,
+            receiving_shed TEXT NOT NULL,
+            dispatch_date TEXT NOT NULL,
+            consignment_number TEXT NOT NULL,
+            created_by INTEGER NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(loco_id) REFERENCES locomotives(id),
+            FOREIGN KEY(created_by) REFERENCES users(id)
         )`);
 
         db.get("SELECT COUNT(*) AS count FROM users", (err, row) => {
@@ -74,94 +87,21 @@ function initDb() {
 }
 
 async function seedData() {
-    console.log("Seeding initial realistic BLW database...");
-    
-    // Seed Users
+    console.log("Seeding default admin user...");
     const saltRounds = 10;
-    const adminHash = await bcrypt.hash('admin123', saltRounds);
-    const viewerHash = await bcrypt.hash('viewer123', saltRounds);
+    const adminHash = await bcrypt.hash('apar123', saltRounds);
     
-    db.run(`INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)`, ['admin', adminHash, 'Admin']);
-    db.run(`INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)`, ['viewer', viewerHash, 'Viewer']);
-    
-    // Seed Departments with Real Names
-    const depts = [
-        'Loco Assembly Shop',
-        'Heavy Machine Shop',
-        'Loco Frame Shop',
-        'Heat Treatment Shop',
-        'Electronic Data Processing (EDP)',
-        'SCADA'
-    ];
-    
-    depts.forEach(dept => {
-        db.run(`INSERT INTO departments (name) VALUES (?)`, [dept]);
-    });
-
-    // Seed Realistic Assets
-    const stmt = db.prepare(`INSERT INTO assets (name, category, department_id, quantity, purchase_date, warranty_expiry, condition, assigned_to, location, asset_value, specifications, last_maintenance, next_maintenance) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
-    
-    const assetsData = [
-        // Loco Assembly Shop (dept 1)
-        { 
-            name: 'Locomotive WAP7-37638', 
-            category: 'Machinery', dept: 1, qty: 1, pur: '2023-11-15', war: '2028-11-14', cond: 'New', assign: 'Assembly Chief', loc: 'Bay A', val: 120000000, 
-            specs: JSON.stringify({ Gauge: '1676mm', Supply: '25kV', HP: '6000', MaxSpeed: '140 km/h' }),
-            last_maint: null, next_maint: '2025-11-15' 
-        },
-        { 
-            name: 'Locomotive WAG9-32045', 
-            category: 'Machinery', dept: 1, qty: 1, pur: '2022-03-20', war: '2027-03-19', cond: 'Good', assign: 'Assembly Chief', loc: 'Bay B', val: 100000000, 
-            specs: JSON.stringify({ HP: '6000', MaxSpeed: '100 km/h', TractiveEffort: '46 tonnes' }),
-            last_maint: '2024-03-20', next_maint: '2025-03-20' 
-        },
-        { 
-            name: 'Overhead Crane (10T)', 
-            category: 'Machinery', dept: 1, qty: 2, pur: '2015-05-20', war: '2020-05-19', cond: 'Needs Repair', assign: 'Suresh M.', loc: 'Bay 2', val: 1200000, 
-            specs: JSON.stringify({ Capacity: '10 Tonnes', Span: '25 meters' }),
-            last_maint: '2024-11-20', next_maint: '2025-02-20' 
-        },
-        // Heavy Machine Shop (dept 2)
-        { 
-            name: 'CNC Lathe Machine', 
-            category: 'Machinery', dept: 2, qty: 1, pur: '2018-08-10', war: '2023-08-10', cond: 'Decommissioned', assign: 'Amit P.', loc: 'Shop Floor C', val: 2500000, 
-            specs: JSON.stringify({ Model: 'Doosan Puma', Axis: '3-Axis' }),
-            last_maint: '2024-01-15', next_maint: null 
-        },
-        { 
-            name: 'Vertical Boring Mill', 
-            category: 'Machinery', dept: 2, qty: 2, pur: '2021-11-12', war: '2026-11-12', cond: 'Good', assign: 'Vikram S.', loc: 'Bay 1', val: 1800000, 
-            specs: null,
-            last_maint: '2025-05-10', next_maint: '2025-11-10' 
-        },
-        // EDP (dept 5)
-        { 
-            name: 'High-end Servers', 
-            category: 'IT Hardware', dept: 5, qty: 4, pur: '2023-06-15', war: '2026-06-15', cond: 'Good', assign: 'EDP Admin', loc: 'Server Room', val: 350000, 
-            specs: JSON.stringify({ CPU: 'Dual Xeon Silver', RAM: '128GB', Storage: '4TB NVMe' }),
-            last_maint: '2025-06-15', next_maint: '2025-12-15' 
-        },
-        // SCADA (dept 6)
-        { 
-            name: 'SCADA Control Workstations', 
-            category: 'IT Hardware', dept: 6, qty: 3, pur: '2020-09-10', war: '2023-09-10', cond: 'Needs Repair', assign: 'Network Team', loc: 'Control Room', val: 120000, 
-            specs: JSON.stringify({ OS: 'RedHat Linux', Monitors: 'Dual 27-inch' }),
-            last_maint: '2024-10-10', next_maint: '2025-01-10' 
-        }
-    ];
-
-    assetsData.forEach(a => {
-        stmt.run([a.name, a.category, a.dept, a.qty, a.pur, a.war, a.cond, a.assign, a.loc, a.val, a.specs, a.last_maint, a.next_maint], function(err) {
-            if (!err && a.last_maint) {
-                db.run(`INSERT INTO maintenance_logs (asset_id, maintenance_date, technician, notes, cost) VALUES (?, ?, ?, ?, ?)`, 
-                    [this.lastID, a.last_maint, 'System Seed', 'Initial seeded maintenance record', 0]);
+    db.run(
+        `INSERT INTO users (employee_id, name, username, password_hash, role, department, password_reset_required) VALUES (?, ?, ?, ?, ?, ?, ?)`, 
+        ['ADM-001', 'System Admin', 'apar', adminHash, 'Admin', 'IT', 1],
+        (err) => {
+            if (err) {
+                console.error("Error seeding default admin:", err.message);
+            } else {
+                console.log("Default admin seeded. Username: apar | Password: apar123");
             }
-        });
-    });
-    
-    stmt.finalize(() => {
-        console.log("Database seeded successfully with authentic BLW data.");
-    });
+        }
+    );
 }
 
 module.exports = db;
